@@ -1,5 +1,5 @@
 import numpy as np
-from scipy.interpolate import UnivariateSpline as spl
+from scipy.interpolate import UnivariateSpline, make_interp_spline
 
 def _gaussian(x, a, b, c):
     return a * np.exp(-((x - b) ** 2) / (2 * c ** 2))
@@ -26,7 +26,7 @@ def _binary_search(nknots,x,y,maxiter=20):
     hi,low = 7, -10
     for _ in range(maxiter):
         s = 10**((hi+low)/2)
-        ss = spl(x,y,k=3,s=s)
+        ss = UnivariateSpline(x,y,k=3,s=s)
         if len(ss.get_knots()) < nknots:
             hi = np.log10(s)
         elif len(ss.get_knots()) > nknots:
@@ -34,3 +34,10 @@ def _binary_search(nknots,x,y,maxiter=20):
         else:
             return s,ss
     return s,ss
+
+def get_spline(knots,edges,wl):
+    xvals = [wl0] + list(knots[:,0]) + [wl1]
+    yvals = [edges[0,0]] + list(knots[:,1]) + [edges[0,1]]
+    interp_model = make_interp_spline(xvals,yvals,k=3, axis=-1)
+    return interp_model
+
