@@ -103,11 +103,13 @@ class SpectraLikelihood:
         -------
              ll : (ndarray) log-likelihood value.
         """
+        #import pdb
+        #pdb.set_trace()
 
         num_groups = int(groups[1].max() + 1)
 
         template = np.zeros((num_groups,self.wl.shape[0]))
- 
+
         if x is not None and groups is not None:
             template += self.combine_gaussians(self.wl, x[0], groups[0],num_groups).reshape(template.shape)
             template += self.get_spline(x[1:], groups[1:])

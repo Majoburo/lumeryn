@@ -9,6 +9,7 @@ from eryn.backends import HDFBackend
 from spec_likelihood import SpectraLikelihood
 import utils
 import plots
+import matplotlib.pyplot as plt
 
 
 class LumerynSpecFitter:
@@ -45,7 +46,7 @@ class LumerynSpecFitter:
         flux = self.flux
 
         if prominence is None:
-            prominence = np.median(np.sqrt(eflux) / flux) /4  # Using half of signal/noise as prominence enough to id.
+            prominence = np.median(np.sqrt(eflux)/flux)/2  # Using half of signal/noise as prominence enough to id.
 
         smooth_flux = savgol_filter(flux, sfwindow, 3)
         apeak, _ = find_peaks(-smooth_flux, width=[pixwidthmin, pixwidthmax], prominence=prominence)
@@ -59,15 +60,15 @@ class LumerynSpecFitter:
         if nameplot is not None:
             plt.plot(wl, flux, label="data", color="lightskyblue")
             plt.plot(wl, smooth_flux)
-            plt.plot(wl[apeak], flux2[apeak], "x")
+            plt.plot(wl[apeak], smooth_flux[apeak], "x")
             plt.vlines(x=wl[apeak], ymin=smooth_flux[apeak], ymax=smooth_flux[apeak] + prominences, color='black')
             plt.hlines(-half_height, wl[np.rint(x1).astype(int)], wl[np.rint(x2).astype(int)], color="C2")
             plt.plot(wl, ss(wl), label='continuum start', color='yellow')
             plt.ylabel("flux")
             plt.xlabel("wavelength")
             plt.legend()
-            #plt.show()
-            plt.savefig(f"{nameplot}.pdf")
+            plt.show()
+            plt.savefig(nameplot)
         self._xpeak = wl[apeak]
         self._ypeak = prominences
         self._wpeak = widths
@@ -82,9 +83,9 @@ class LumerynSpecFitter:
 
         varmin = (wl[1] - wl[0]) * 5
         varmax = (wl[-1] - wl[0]) / 5
-
-        mx = np.max(flux)
-        mn = np.min(flux)
+        # If positive or negative wanna increase the range by 20%.
+        mx = max(np.max(flux)*1.2,np.max(flux)*0.8)
+        mn = min(np.min(flux)*1.2,np.min(flux)*0.8)
 
         self.priors = {
             "gauss": {
@@ -158,18 +159,21 @@ class LumerynSpecFitter:
                 # gauss
                 for nn in range(int(prior_par["gauss"]["nmax"])):
                     i = np.random.randint(0, len(ypeak))
-                    coords["gauss"][t, w, nn, 0] = -ypeak[i] + 1e-6 * np.random.randn()
-                    coords["gauss"][t, w, nn, 1] = xpeak[i] + 1e-6 * np.random.randn()
-                    coords["gauss"][t, w, nn, 2] = wpeak[i] + 1e-6 * np.random.randn()
+                    ball_radius = [(priors["gauss"][n].max_val - priors["gauss"][n].min_val)/1000 for n in range(3)]
+                    coords["gauss"][t, w, nn, 0] = -ypeak[i] + ball_radius[0] * np.random.randn()
+                    coords["gauss"][t, w, nn, 1] = xpeak[i] + ball_radius[1] * np.random.randn()
+                    coords["gauss"][t, w, nn, 2] = wpeak[i] + ball_radius[2] * np.random.randn()
 
                 for nn in range(int(prior_par["knots"]["nmax"])):
                     i = np.random.randint(1, len(knots.get_knots()) - 1)
-                    coords["knots"][t, w, nn, 0] = knots.get_knots()[i] + 1e-2 * np.random.randn()
-                    coords["knots"][t, w, nn, 1] = knots(knots.get_knots())[i] + 1e-2 * np.random.randn()
+                    ball_radius = [(priors["knots"][n].max_val - priors["knots"][n].min_val)/1000 for n in range(2)]
+                    coords["knots"][t, w, nn, 0] = knots.get_knots()[i] + ball_radius[0] * np.random.randn()
+                    coords["knots"][t, w, nn, 1] = knots(knots.get_knots())[i] + ball_radius[1] * np.random.randn()
 
                 for nn in range(int(prior_par["edges"]["nmax"])):
-                    coords["edges"][t, w, nn, 0] = knots(knots.get_knots())[0] + 1e-2 * np.random.randn()
-                    coords["edges"][t, w, nn, 1] = knots(knots.get_knots())[-1] + 1e-2 * np.random.randn()
+                    ball_radius = [(priors["edges"][n].max_val - priors["edges"][n].min_val)/1000 for n in range(2)]
+                    coords["edges"][t, w, nn, 0] = knots(knots.get_knots())[0] + ball_radius[0] * np.random.randn()
+                    coords["edges"][t, w, nn, 1] = knots(knots.get_knots())[-1] + ball_radius[1] * np.random.randn()
 
         init_check(coords)
 
@@ -268,17 +272,16 @@ class LumerynSpecFitter:
         return ensemble
 
 if __name__ == "__main__":
-    wl,flux,eflux = np.loadtxt("testdata.dat").T
+    datafile = "testdata2.dat"
+    wl,flux,eflux = np.loadtxt(datafile).T
     lum = LumerynSpecFitter(wl,flux,eflux)
 
     # These two following routines will be run by default when calling LumerynSpecFitter.fit(), but are accesible and have many useful options.
-    lum.generate_initial_guess()
+    lum.generate_initial_guess(nameplot='initialization.pdf', sfwindow=20, pixwidthmin=5, pixwidthmax=50)
     lum.initialize_chains()
 
-    ensemble = lum.fit(backendname = "testdata")
+    ensemble = lum.fit()
     plots.plot_best(wl,flux,ensemble)
-    import pdb
-    pdb.set_trace()
     plots.trace_plots(ensemble)
 
 

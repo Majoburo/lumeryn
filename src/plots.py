@@ -4,7 +4,6 @@ import matplotlib.pyplot as plt
 import utils
 import os
 
-
 def get_max(ensemble,param):
     """
     Returns the max-likelihood sample.
@@ -81,7 +80,7 @@ def trace_plots(ensemble,outdir="./plots"):
             ax.yaxis.set_label_coords(-0.1, 0.5)
             for t in reversed(range(ntemps)):
                 for k in range(nwalkers):
-                    ax.plot(samples_burnt[:, t, k, 0, j], c=csteps[t], alpha=0.2)
+                    ax.scatter(range(samples_burnt.shape[0]), samples_burnt[:, t, k, 0, j], c=csteps[t], alpha=0.2,s=0.5)
 
         for k in range(nwalkers):
             axes[-1].plot(ll[:, 0, k])
