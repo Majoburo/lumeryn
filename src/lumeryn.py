@@ -272,12 +272,12 @@ class LumerynSpecFitter:
         return ensemble
 
 if __name__ == "__main__":
-    datafile = "testdata2.dat"
+    datafile = "testdata.dat"
     wl,flux,eflux = np.loadtxt(datafile).T
     lum = LumerynSpecFitter(wl,flux,eflux)
 
     # These two following routines will be run by default when calling LumerynSpecFitter.fit(), but are accesible and have many useful options.
-    lum.generate_initial_guess(nameplot='initialization.pdf', sfwindow=20, pixwidthmin=5, pixwidthmax=50)
+    lum.generate_initial_guess(nameplot='initialization.pdf', sfwindow=50, pixwidthmin=5, pixwidthmax=len(wl)/5)
     lum.initialize_chains()
 
     ensemble = lum.fit()
