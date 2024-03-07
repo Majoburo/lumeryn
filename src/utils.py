@@ -7,7 +7,7 @@ def _gaussian(x, a, b, c):
 def _multi_gaussian(x, params):
     template = np.zeros_like(x)
     for param in params:
-        template += gaussian_pulse(x, *param)
+        template += _gaussian(x, *param)
     return template
 
 def _monomial(x,a,n):
@@ -16,7 +16,7 @@ def _monomial(x,a,n):
 def _polynomial(x,params):
     template = np.zeros_like(x)
     for param in params:
-        template += poly(x, *param)
+        template += _monomial(x, *param)
     return template
 
 def _binary_search(nknots,x,y,maxiter=20):
@@ -36,7 +36,7 @@ def _binary_search(nknots,x,y,maxiter=20):
     return s,ss
 
 def get_spline(knots,edges,wl):
-    xvals = [wl0] + list(knots[:,0]) + [wl1]
+    xvals = [wl[0]] + list(knots[:,0]) + [wl[-1]]
     yvals = [edges[0,0]] + list(knots[:,1]) + [edges[0,1]]
     interp_model = make_interp_spline(xvals,yvals,k=3, axis=-1)
     return interp_model

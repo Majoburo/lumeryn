@@ -8,6 +8,7 @@ from eryn.moves import GaussianMove,GroupMove
 from eryn.backends import HDFBackend
 from spec_likelihood import SpectraLikelihood
 import utils
+import plots
 
 
 class LumerynSpecFitter:
@@ -216,8 +217,8 @@ class LumerynSpecFitter:
 
         ll_eval = speclike.evaluate([coords_in['gauss'], coords_in["knots"], coords_in["edges"]], [groups_in['gauss'], groups_in["knots"], groups_in["edges"]])
 
-        print('llh shape = ', ll_eval.shape)
-        print('ll_eval = ', ll_eval)
+        #print('llh shape = ', ll_eval.shape)
+        #print('ll_eval = ', ll_eval)
 
         log_prob = ll_eval.reshape(ntemps, nwalkers)
 
@@ -255,8 +256,6 @@ class LumerynSpecFitter:
             vectorize=True,
             backend=backend,
         )
-        #import pdb
-        #pdb.set_trace()
 
         print('[lumeryn]:  * Started sampling ...')
         state = State(coords, log_like=log_prob, betas=betas, blobs=None, inds=indxs)
@@ -266,13 +265,20 @@ class LumerynSpecFitter:
         ensemble.run_mcmc(state, nsteps, burn=burnin, progress=True, thin_by=1)
 
         print('[lumeryn]:  * Finished sampling!')
+        return ensemble
 
 if __name__ == "__main__":
     wl,flux,eflux = np.loadtxt("testdata.dat").T
     lum = LumerynSpecFitter(wl,flux,eflux)
+
     # These two following routines will be run by default when calling LumerynSpecFitter.fit(), but are accesible and have many useful options.
     lum.generate_initial_guess()
-    lum.initialize_chains(backendname = "testdata")
-    ensemble = lum.fit()
+    lum.initialize_chains()
+
+    ensemble = lum.fit(backendname = "testdata")
+    plots.plot_best(wl,flux,ensemble)
+    import pdb
+    pdb.set_trace()
+    plots.trace_plots(ensemble)
 
 
