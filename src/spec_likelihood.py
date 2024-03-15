@@ -21,10 +21,9 @@ class SpectraLikelihood:
 
         # Wavelenghts
         self.wl   = wavelength
-        self.flux = flux
-        self.eflux = eflux
-        # Maximum value allowed in the exponential function
-        self.expmax = expmax
+        #self.maxflux = max(flux)
+        self.flux = flux#/self.maxflux
+        self.eflux = eflux#/self.maxflux
         # Interpolation kind
         self.kind = kind
         # tolerance on proximity of knots in logspace
@@ -77,10 +76,10 @@ class SpectraLikelihood:
                 spline_model[i] = interp_model(self.wl)
 
                 # To prevent overflow
-                if np.any(spline_model[i] > self.expmax):
-                    print('[Overflow!]')
-                    i_over = np.where((spline_model[i] > self.expmax) | (np.isnan(spline_model[i])))
-                    spline_model[i][i_over] = np.nan
+                #if np.any(spline_model[i] > self.expmax):
+                #    print('[Overflow!]')
+                #    i_over = np.where((spline_model[i] > self.expmax) | (np.isnan(spline_model[i])))
+                #    spline_model[i][i_over] = np.nan
         # Return the correct quantity
         return spline_model
 

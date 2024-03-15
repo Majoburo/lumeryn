@@ -10,7 +10,7 @@ params = [[-0.3,450,2], # amp, mean, width
           [-0.2,530,1]
         ]
 gaussians = utils._multi_gaussian(wl,params)
-amp_noise = 0.05
+amp_noise = 0.02
 eflux = amp_noise*np.ones_like(wl)
 noise = eflux*np.random.randn(len(wl))
 flux = gaussians + interp_model(wl) + noise

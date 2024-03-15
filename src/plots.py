@@ -29,9 +29,11 @@ def get_clean_best_nleave_chain(ensemble, param, temp=0):
     num,_,dim = sparams.shape
     return sparams[naninds].reshape(num,best_nleaves,dim)
 
-def get_clean_chain(coords, ndim, temp=0):
+def get_clean_chain(ensemble, param, temp=0):
     """Simple utility function to extract the squeezed chains for all the parameters
     """
+    coords = ensemble.get_chain()[param]
+    _, ntemps, nwalkers, _, ndim = coords.shape
     naninds    = np.logical_not(np.isnan(coords[:, temp, :, :, 0].flatten()))
     samples_in = np.zeros((coords[:, temp, :, :, 0].flatten()[naninds].shape[0], ndim))  # init the chains to plot
     # get the samples to plot
@@ -65,7 +67,8 @@ def corner_plot(samples,param_names, outdir="./plots"):
     plt.savefig(os.path.join(outdir, f"corner.png"))
     plt.close()
 
-def trace_plots(ensemble,outdir="./plots"):
+def trace_plots(ensemble,outdir="./plots",outfile = "test.png"):
+    outfile = outfile.split(".")
     # trace plots for one of the branches
     ll = ensemble.get_log_like()
     branches = ensemble.branch_names
@@ -87,10 +90,10 @@ def trace_plots(ensemble,outdir="./plots"):
         axes[-1].set_ylabel("log pos (T=1)")
         axes[-1].yaxis.set_label_coords(-0.1, 0.5)
         axes[-1].set_xlabel("step number")
-        plt.savefig(os.path.join(outdir, f"{branch_name}_trace.png"))
+        plt.savefig(os.path.join(outdir, f"{outfile[0]}_{branch_name}_trace.{outfile[1]}"))
         plt.close()
 
-def plot_best(wl,flux, ensemble,outdir="./plots"):
+def plot_best_nleaves(wl,flux, ensemble,outdir="./plots"):
     plt.plot(wl, flux, label="data", color="lightskyblue")
     knots = get_clean_best_nleave_chain(ensemble, 'knots', temp=0)
     edges = get_clean_best_nleave_chain(ensemble, 'edges', temp=0)
@@ -106,3 +109,34 @@ def plot_best(wl,flux, ensemble,outdir="./plots"):
     plt.savefig(os.path.join(outdir, f"best_samples.png"))
     plt.close()
 
+def get_leaves(ensemble,branchname,temp=0):
+    branch = ensemble.get_chain()[branchname]
+    nsteps, ntemps, nwalkers, nmaxleaves, ndim = branch.shape
+    branch = branch[:,temp,:,:,:].reshape(nsteps*nwalkers,nmaxleaves,ndim)
+    mask = ensemble.get_inds()[branchname][:,temp,:,:]
+    mask = mask.reshape(nsteps*nwalkers,nmaxleaves)
+    leaves = []
+    for step in np.arange(len(mask)):
+        leaves.append(branch[step][mask[step]])
+    return leaves
+
+def plot_best(wl,flux, ensemble, outdir="./plots", outfile = "test.png"):
+    outfile = outfile.split(".")
+    plt.plot(wl, flux, label="data", color="lightskyblue")
+    knots = get_leaves(ensemble,"knots",temp=0)
+    edges = get_leaves(ensemble, 'edges', temp=0)
+    gauss = get_leaves(ensemble, 'gauss', temp=0)
+    logl = ensemble.get_log_like()[:,0,:].flatten()
+    for i in range(len(logl)):
+        gaussians = utils._multi_gaussian(wl, gauss[i])
+        interp_mod = utils.get_spline(knots[i], edges[i], wl)
+        plt.plot(wl, interp_mod(wl) + gaussians, alpha=0.02, color="orange")
+    gaussians = utils._multi_gaussian(wl, get_max(ensemble,'gauss'))
+    interp_mod = utils.get_spline(get_max(ensemble, 'knots'), get_max(ensemble, 'edges'), wl)
+    plt.plot(wl, interp_mod(wl), color="grey",label='spline')
+    plt.plot(wl, interp_mod(wl) + gaussians, color="black",label='spline+gaussians')
+    plt.plot(wl, interp_mod(wl) + gaussians, color="black",label='spline+gaussians')
+    plt.plot(wl, np.median(interp_mod(wl)) + gaussians, color="red",label='gaussians')
+    plt.savefig(os.path.join(outdir, f"{outfile[0]}_best_samples.{outfile[1]}"))
+    plt.close()
+    return interp_mod

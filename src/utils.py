@@ -3,6 +3,8 @@ from scipy.interpolate import UnivariateSpline, make_interp_spline
 
 def _gaussian(x, a, b, c):
     return a * np.exp(-((x - b) ** 2) / (2 * c ** 2))
+#def _gaussian(x, a, b, c):# Really a lorentzian, just checking
+#    return a * (gam/2)**2 / ( (gam/2)**2 + ( x - b )**2)
 
 def _multi_gaussian(x, params):
     template = np.zeros_like(x)
@@ -19,13 +21,19 @@ def _polynomial(x,params):
         template += _monomial(x, *param)
     return template
 
-def _binary_search(nknots,x,y,maxiter=20):
+def _binary_search(nknots,x,y,dy,maxiter=50):
     """
     Binary search for the smoothness parameter "s" to get a spline with nknots.
     """
-    hi,low = 7, -10
+    m = len(x)
+    std = np.mean(np.sqrt(dy))
+    low = np.log10((m - np.sqrt(2*m)) * std**2)-100
+    hi = np.log10((m + np.sqrt(2*m)) * std**2)+100
+    print([hi,low])
+    #hi,low = 100, -10
     for _ in range(maxiter):
         s = 10**((hi+low)/2)
+        #print(s)
         ss = UnivariateSpline(x,y,k=3,s=s)
         if len(ss.get_knots()) < nknots:
             hi = np.log10(s)
