@@ -6,9 +6,9 @@ import os
 
 def get_max(ensemble,param):
     """
-    Returns the max-likelihood sample.
+    Returns the max-posterior sample.
     """
-    amax = np.argmax(ensemble.get_log_like().flatten())
+    amax = np.argmax(ensemble.get_log_posterior().flatten())
     samp = ensemble.get_chain()[param]
     evals, temps, walker, nleaves,dim = samp.shape
     samp = samp.reshape(evals*temps*walker,nleaves,dim)[amax]
@@ -18,9 +18,9 @@ def get_max(ensemble,param):
 
 def get_clean_best_nleave_chain(ensemble, param, temp=0):
     """
-    Returns only the chains with the same number of leaves for "param" as the max-likelihood one.
+    Returns only the chains with the same number of leaves for "param" as the max-posterior one.
     """
-    amax = np.argmax(ensemble.get_log_like())
+    amax = np.argmax(ensemble.get_log_posterior())
     best_nleaves = ensemble.get_nleaves()[param].flatten()[amax]
     mask = ensemble.get_nleaves()[param][:,temp,:] == best_nleaves
     sparams = ensemble.get_chain()[param][:,temp,:][mask]
@@ -70,7 +70,7 @@ def corner_plot(samples,param_names, outdir="./plots"):
 def trace_plots(ensemble,outdir="./plots",outfile = "test.png"):
     outfile = outfile.split(".")
     # trace plots for one of the branches
-    ll = ensemble.get_log_like()
+    ll = ensemble.get_log_posterior()
     branches = ensemble.branch_names
     for branch_name in branches:
         samples_burnt = ensemble.get_chain()[branch_name]
@@ -126,17 +126,17 @@ def plot_best(wl,flux, ensemble, outdir="./plots", outfile = "test.png"):
     knots = get_leaves(ensemble,"knots",temp=0)
     edges = get_leaves(ensemble, 'edges', temp=0)
     gauss = get_leaves(ensemble, 'gauss', temp=0)
-    logl = ensemble.get_log_like()[:,0,:].flatten()
+    logl = ensemble.get_log_posterior()[:,0,:].flatten()
     for i in range(len(logl)):
         gaussians = utils._multi_gaussian(wl, gauss[i])
         interp_mod = utils.get_spline(knots[i], edges[i], wl)
         plt.plot(wl, interp_mod(wl) + gaussians, alpha=0.02, color="orange")
-    gaussians = utils._multi_gaussian(wl, get_max(ensemble,'gauss'))
-    interp_mod = utils.get_spline(get_max(ensemble, 'knots'), get_max(ensemble, 'edges'), wl)
-    plt.plot(wl, interp_mod(wl), color="grey",label='spline')
-    plt.plot(wl, interp_mod(wl) + gaussians, color="black",label='spline+gaussians')
-    plt.plot(wl, interp_mod(wl) + gaussians, color="black",label='spline+gaussians')
-    plt.plot(wl, np.median(interp_mod(wl)) + gaussians, color="red",label='gaussians')
+        plt.plot(wl, interp_mod(wl), alpha=0.02, color="green")
+    #gaussians = utils._multi_gaussian(wl, get_max(ensemble,'gauss'))
+    #interp_mod = utils.get_spline(get_max(ensemble, 'knots'), get_max(ensemble, 'edges'), wl)
+    #plt.plot(wl, interp_mod(wl), color="grey",label='spline')
+    #plt.plot(wl, interp_mod(wl) + gaussians, color="black",label='spline+gaussians')
+    #plt.plot(wl, np.median(interp_mod(wl)) + gaussians, color="red",label='gaussians')
     plt.savefig(os.path.join(outdir, f"{outfile[0]}_best_samples.{outfile[1]}"))
     plt.close()
     return interp_mod

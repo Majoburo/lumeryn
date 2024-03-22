@@ -114,7 +114,7 @@ class SpectraLikelihood:
             template += self.get_spline(x[1:], groups[1:])
         # Sum with the normalization factor here
         ## RECHECK THE NORMALIZATION IS CORRECT HERE!!!
-        ll = np.nan_to_num(-.5 *((template - self.flux) / self.eflux) ** 2 + np.log(2.*np.pi),nan=-np.inf)
+        ll = np.nan_to_num(-.5 *(((template - self.flux) / self.eflux) ** 2 + np.log(2.*np.pi)) -np.log(self.eflux),nan=-np.inf)
         ll = np.sum(ll,axis=-1)
         ll[~np.isfinite(ll)] = -self.inf
         return ll

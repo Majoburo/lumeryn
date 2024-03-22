@@ -130,7 +130,7 @@ class LumerynSpecFitter:
                 nleaf = int(prior_par[name]['nmax'])
                 prior_bounds = np.array([ [priors[name][n].min_val, priors[name][n].max_val] for n in range(ndim)])
                 mn,mx = prior_bounds.T
-                mask = np.logical_and.reduce((coords[name] > mn) & (coords[name] < mx),axis=-1)
+                mask = np.logical_and.reduce((coords[name] >= mn) & (coords[name] <= mx),axis=-1)
                 if not mask.all():
                     print(f"[lumeryn]: error, some {name} initial conditions outside priors")
                     print(f"[lumeryn]: priors: {prior_bounds}")
@@ -153,9 +153,9 @@ class LumerynSpecFitter:
                     coords["gauss"][t, w, nn, 0] = -ypeak[i] + ball_radius[0] * np.random.uniform(-1,1)
                     coords["gauss"][t, w, nn, 1] = xpeak[i] + ball_radius[1] * np.random.uniform(-1,1)
                     coords["gauss"][t, w, nn, 2] = wpeak[i] + ball_radius[2] * np.random.uniform(-1,1)
-                    clamp(coords["gauss"][t, w, nn, 0], priors['gauss'][0].min_val,priors['gauss'][0].max_val)
-                    clamp(coords["gauss"][t, w, nn, 1], priors['gauss'][1].min_val,priors['gauss'][1].max_val)
-                    clamp(coords["gauss"][t, w, nn, 2], priors['gauss'][2].min_val,priors['gauss'][2].max_val)
+                    coords["gauss"][t, w, nn, 0]=clamp(coords["gauss"][t, w, nn, 0], priors['gauss'][0].min_val,priors['gauss'][0].max_val)
+                    coords["gauss"][t, w, nn, 1]=clamp(coords["gauss"][t, w, nn, 1], priors['gauss'][1].min_val,priors['gauss'][1].max_val)
+                    coords["gauss"][t, w, nn, 2]=clamp(coords["gauss"][t, w, nn, 2], priors['gauss'][2].min_val,priors['gauss'][2].max_val)
                 for nn in range(int(prior_par["knots"]["nmax"])):
                     i = np.random.randint(1, len(knots.get_knots()) - 1)
                     ball_radius = [(priors["knots"][n].max_val - priors["knots"][n].min_val)/10000 for n in range(2)]
@@ -174,9 +174,9 @@ class LumerynSpecFitter:
         init_check(coords)
 
         # turn on at least this many knots in each temp and walker
-        indxs['knots'][:, :, :int(prior_par['knots']['nmin'])] = True
+        indxs['knots'][:, :, :int(prior_par['knots']['min_on'])] = True
         # turn on at least this many gaussians in each temp and walker
-        indxs['gauss'][:, :, :int(prior_par['gauss']['nmin'])] = True
+        indxs['gauss'][:, :, :int(prior_par['gauss']['min_on'])] = True
 
         for name, inds_temp in indxs.items():
             inds_fix = np.where(np.sum(inds_temp, axis=-1) == 0)
@@ -276,10 +276,10 @@ if __name__ == "__main__":
     lum = LumerynSpecFitter(wl,flux,eflux)
 
     # These two following routines will be run by default when calling LumerynSpecFitter.fit(), but are accesible and have many useful options.
-    lum.generate_initial_guess(nameplot='initialization.pdf', sfwindow=50)#, pixwidthmin=5, pixwidthmax=len(wl)/5)
+    lum.generate_initial_guess(nameplot='initialization.pdf', sfwindow=20)#, pixwidthmin=5, pixwidthmax=len(wl)/5)
     lum.initialize_chains()
 
-    ensemble = lum.fit(backendname = fname+".hd5")
+    ensemble = lum.fit()#backendname = fname+".hd5")
     plots.plot_best(wl,flux,ensemble, outfile = fname+".png")
     plots.trace_plots(ensemble,outfile = fname+".png")
 
